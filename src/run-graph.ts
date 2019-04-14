@@ -204,7 +204,7 @@ export class RunGraph {
           return Bromise.resolve()
         })
         if (this.opts.mode === 'parallel' || !ch.process) return ch.status
-        else return processRun.thenReturn(ProcResolution.Normal)
+        else return processRun.then(() => ProcResolution.Normal)
       })
     })
   }
