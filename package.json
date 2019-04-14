@@ -1,11 +1,11 @@
 {
-  "name": "wsrun",
-  "version": "3.6.4",
+  "name": "@johanblumenberg/wsrun",
+  "version": "1.0.0",
   "description": "executes commands on packages in parallel, but is aware of the dependencies between them",
   "main": "./build/index.js",
   "author": "hfour",
   "license": "MIT",
-  "repository": "github:whoeverest/wsrun",
+  "repository": "github:johanblumenberg/wsrun",
   "jest": {
     "verbose": false,
     "transform": {

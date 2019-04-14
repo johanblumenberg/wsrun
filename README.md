@@ -2,6 +2,13 @@
 
 Run npm scripts in a yarn workspace.
 
+## Fork of hfour/wsrun
+
+This is a fork of https://github.com/hfour/wsrun
+This fork fixes these issues, and will be discontinued as soon as they are merged in the main repository.
+ - https://github.com/hfour/wsrun/pull/46
+ - https://github.com/hfour/wsrun/pull/48
+
 ### Usage:
 
 ```
