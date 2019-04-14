@@ -2,6 +2,12 @@
 
 Run npm scripts or custom commands in a yarn workspace
 
+## Fork of hfour/wsrun
+
+This is a fork of https://github.com/hfour/wsrun
+This fork fixes these issues, and will be discontinued as soon as they are merged in the main repository.
+ - Using --collect-logs and --fast-exit hides the output from a failing job
+
 ### Usage:
 
 ```
