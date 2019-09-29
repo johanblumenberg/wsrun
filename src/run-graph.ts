@@ -16,12 +16,12 @@ let mkThroat = require('throat')(Bromise) as ((limit: number) => PromiseFnRunner
 let passThrough: PromiseFnRunner = f => f()
 
 class Prefixer {
-  constructor(private wspath: string) { }
+  constructor(private wspath: string, private linePrefix: string) { }
   private currentName = ''
   prefixer = (basePath: string, pkg: string, line: string) => {
     let l = ''
     if (this.currentName != pkg) l += chalk.bold((this.currentName = pkg)) + '\n'
-    l += ' | ' + line // this.processFilePaths(basePath, line)
+    l += this.linePrefix + line // this.processFilePaths(basePath, line)
     return l
   }
 
@@ -62,6 +62,7 @@ export interface GraphOptions {
   fastExit: boolean
   collectLogs: boolean
   addPrefix: boolean
+  linePrefix: string;
   rewritePaths: boolean
   mode: 'parallel' | 'serial' | 'stages'
   recursive: boolean
@@ -84,7 +85,7 @@ export class RunGraph {
   private resultMap = new Map<string, Result>()
   private throat: PromiseFnRunner = passThrough
   private _running = new OutputWaitingList();
-  prefixer = new Prefixer(this.opts.workspacePath).prefixer
+  prefixer = new Prefixer(this.opts.workspacePath, this.opts.linePrefix).prefixer
   pathRewriter = fixPaths
 
   constructor(
