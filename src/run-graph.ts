@@ -16,7 +16,7 @@ let mkThroat = require('throat')(Bromise) as ((limit: number) => PromiseFnRunner
 let passThrough: PromiseFnRunner = f => f()
 
 class Prefixer {
-  constructor(private wspath: string) {}
+  constructor(private wspath: string) { }
   private currentName = ''
   prefixer = (basePath: string, pkg: string, line: string) => {
     let l = ''
@@ -27,6 +27,33 @@ class Prefixer {
 
   processFilePaths(basePath: string, line: string) {
     return fixPaths(this.wspath, basePath, line)
+  }
+}
+
+class OutputWaitingList {
+  private _active: CmdProcess | undefined;
+  private _list: CmdProcess[] = [];
+
+  private _start(cp: CmdProcess) {
+    this._active = cp;
+    this._active.activeOutput = true;
+
+    this._active.finished.then(() => {
+      this._active = undefined;
+
+      let cp = this._list.shift();
+      if (cp) {
+        this._start(cp);
+      }
+    });
+  }
+
+  start(cp: CmdProcess) {
+    if (!this._active) {
+      this._start(cp);
+    } else {
+      this._list.push(cp);
+    }
   }
 }
 
@@ -56,6 +83,7 @@ export class RunGraph {
   private runList = new Set<string>()
   private resultMap = new Map<string, Result>()
   private throat: PromiseFnRunner = passThrough
+  private _running = new OutputWaitingList();
   prefixer = new Prefixer(this.opts.workspacePath).prefixer
   pathRewriter = fixPaths
 
@@ -201,6 +229,7 @@ export class RunGraph {
       return child.then(ch => {
         let processRun = this.throat(() => {
           if (ch.process) {
+            this._running.start(ch.process);
             ch.process.start()
             return ch.process.finished
           }

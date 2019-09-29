@@ -27,6 +27,9 @@ export class CmdProcess {
   private _finished = defer<void>()
   private _exitCode = defer<number>()
   private _cancelled = defer<Result>()
+  private _activeOutput = false;
+  private _outputBuffer: { type: 'stderr' | 'stdout', line: string }[] = []
+
 
   private doneCriteria?: RegExp
 
@@ -62,6 +65,16 @@ export class CmdProcess {
 
   get cmdString() {
     return this.cmd.join(' ')
+  }
+
+  set activeOutput(active: boolean) {
+    this._activeOutput = true;
+
+    this._outputBuffer.forEach(line => {
+      if (line.type === 'stdout') console.log(this.autoAugmentLine(line.line))
+      else console.error(this.autoAugmentLine(line.line))
+    })
+    this._outputBuffer = [];
   }
 
   constructor(private cmd: string[], private pkgName: string, private opts: CmdOptions) {
@@ -132,8 +145,6 @@ export class CmdProcess {
       //shFlag = '-c'
     }
 
-    const outputBuffer: { type: 'stderr' | 'stdout', line: string }[] = []
-
     this.cmd = cmd
     this.cp = spawn(sh, args, {
       cwd:
@@ -148,22 +159,15 @@ export class CmdProcess {
 
     if (this.cp.stdout)
       this.cp.stdout.pipe(split()).on('data', (line: string) => {
-        if (this.opts.collectLogs) outputBuffer.push({ type: 'stdout', line })
+        if (this.opts.collectLogs && !this._activeOutput) this._outputBuffer.push({ type: 'stdout', line })
         else console.log(this.autoAugmentLine(line))
         if (this.doneCriteria && this.doneCriteria.test(line)) this._finished.resolve()
       })
     if (this.cp.stderr)
       this.cp.stderr.pipe(split()).on('data', (line: string) => {
-        if (this.opts.collectLogs) outputBuffer.push({ type: 'stderr', line })
+        if (this.opts.collectLogs && !this._activeOutput) this._outputBuffer.push({ type: 'stderr', line })
         else console.error(this.autoAugmentLine(line))
         if (this.doneCriteria && this.doneCriteria.test(line)) this._finished.resolve()
-      })
-    if (this.opts.collectLogs)
-      this._closed.promise.then(() => {
-        outputBuffer.forEach(line => {
-          if (line.type === 'stdout') console.log(this.autoAugmentLine(line.line))
-          else console.error(this.autoAugmentLine(line.line))
-        })
       })
   }
 }
