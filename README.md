@@ -6,9 +6,9 @@ Run npm scripts or custom commands in a yarn workspace
 
 This is a fork of https://github.com/hfour/wsrun
 This fork fixes these issues, and will be discontinued as soon as they are merged and published in the main wsrun repo.
- - https://github.com/hfour/wsrun/pull/46
- - https://github.com/hfour/wsrun/pull/48
- - https://github.com/hfour/wsrun/pull/49
+ - https://github.com/hfour/wsrun/pull/73
+ - https://github.com/hfour/wsrun/pull/74
+ - https://github.com/hfour/wsrun/pull/75
 
 ### Usage:
 
