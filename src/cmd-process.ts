@@ -10,8 +10,7 @@ import { IConsole } from './console';
 
 export interface CmdOptions {
   silent?: boolean
-  collectLogs: boolean
-  prefixer?: (basePath: string, pkg: string, line: string) => string
+  stdio?: 'inherit' | 'pipe'
   pathRewriter?: (currentPath: string, line: string) => string
   doneCriteria?: string
   path: string
@@ -65,8 +64,7 @@ export class CmdProcess {
     return this.cmd.join(' ')
   }
 
-  constructor(public console: IConsole, private cmd: string[], private pkgName: string, private opts: CmdOptions) {
-    this.pkgName = pkgName
+  constructor(public console: IConsole, private cmd: string[], private opts: CmdOptions) {
     this.opts = opts
 
     if (this.opts.doneCriteria) this.doneCriteria = new RegExp(this.opts.doneCriteria)
@@ -90,7 +88,7 @@ export class CmdProcess {
     })
 
     // ignore if unhandled
-    this._finished.promise.catch(() => {})
+    this._finished.promise.catch(() => { })
   }
 
   stop() {
@@ -102,17 +100,12 @@ export class CmdProcess {
     this._cancelled.resolve(ResultSpecialValues.Cancelled)
   }
 
-  private autoPrefix(line: string) {
-    return this.opts.prefixer ? this.opts.prefixer(this.opts.path, this.pkgName, line) : line
-  }
-
   private autoPathRewrite(line: string) {
     return this.opts.pathRewriter ? this.opts.pathRewriter(this.opts.path, line) : line
   }
 
   private autoAugmentLine(line: string) {
     line = this.autoPathRewrite(line)
-    line = this.autoPrefix(line)
     return line
   }
 
@@ -136,10 +129,7 @@ export class CmdProcess {
         this.opts.path ||
         ((process.versions.node < '8.0.0' ? process.cwd : process.cwd()) as string),
       env: Object.assign(process.env, process.stdout.isTTY ? { FORCE_COLOR: '1' } : {}),
-      stdio:
-        this.opts.collectLogs || this.opts.prefixer != null || this.opts.doneCriteria
-          ? 'pipe'
-          : 'inherit'
+      stdio: this.opts.stdio || 'inherit'
     })
 
     if (this.cp.stdout)

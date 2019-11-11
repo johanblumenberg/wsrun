@@ -7,7 +7,7 @@ import { uniq } from 'lodash'
 import { CmdProcess } from './cmd-process'
 import minimatch = require('minimatch')
 import { fixPaths } from './fix-paths'
-import { ConsoleFactory, SerializedConsole, DefaultConsole, IConsole } from './console'
+import { ConsoleFactory, SerializedConsole, DefaultConsole, IConsole, PrefixedConsole } from './console'
 
 type PromiseFn<T> = () => Bromise<T>
 type PromiseFnRunner = <T>(f: PromiseFn<T>) => Bromise<T>
@@ -17,7 +17,7 @@ let mkThroat = require('throat')(Bromise) as ((limit: number) => PromiseFnRunner
 let passThrough: PromiseFnRunner = f => f()
 
 class Prefixer {
-  constructor(private wspath: string) {}
+  constructor(private wspath: string) { }
   private currentName = ''
   prefixer = (basePath: string, pkg: string, line: string) => {
     let l = ''
@@ -72,7 +72,7 @@ export class RunGraph {
     else if (this.opts.mode === 'stages') this.throat = mkThroat(opts.concurrency || 16)
     else if (opts.concurrency) this.throat = mkThroat(opts.concurrency)
 
-    if (opts.collectLogs) this.consoles = new SerializedConsole(console)
+    if (opts.collectLogs) this.consoles = new SerializedConsole()
     else this.consoles = new DefaultConsole();
   }
 
@@ -141,11 +141,11 @@ export class RunGraph {
 
   private runCondition(cmd: string, pkg: string) {
     let cmdLine = this.makeCmd(cmd.split(' '))
-    let c = this.consoles.create();
-    const child = new CmdProcess(c, cmdLine, pkg, {
+    let c = this.consoles.create(
+      this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg) + '\n', ' | ') : console);
+    const child = new CmdProcess(c, cmdLine, {
       silent: true,
-      collectLogs: this.opts.collectLogs,
-      prefixer: this.opts.addPrefix ? this.prefixer : undefined,
+      stdio: (this.opts.collectLogs || this.opts.addPrefix) ? 'pipe' : 'inherit',
       doneCriteria: this.opts.doneCriteria,
       path: this.pkgPaths[pkg]
     })
@@ -193,10 +193,10 @@ export class RunGraph {
         }
 
         let cmdLine = this.makeCmd(cmdArray)
-        let c = this.consoles.create();
-        const child = new CmdProcess(c, cmdLine, pkg, {
-          collectLogs: this.opts.collectLogs,
-          prefixer: this.opts.addPrefix ? this.prefixer : undefined,
+        let c = this.consoles.create(
+          this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg) + '\n', ' | ') : console);
+        const child = new CmdProcess(c, cmdLine, {
+          stdio: (this.opts.collectLogs || this.opts.addPrefix) ? 'pipe' : 'inherit',
           pathRewriter: this.opts.rewritePaths ? this.pathRewriter : undefined,
           doneCriteria: this.opts.doneCriteria,
           path: this.pkgPaths[pkg]
