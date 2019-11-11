@@ -9,7 +9,6 @@ import { defer } from './utils'
 import { IConsole } from './console';
 
 export interface CmdOptions {
-  rejectOnNonZeroExit: boolean
   silent?: boolean
   collectLogs: boolean
   prefixer?: (basePath: string, pkg: string, line: string) => string
@@ -86,7 +85,6 @@ export class CmdProcess {
       if (code > 0) {
         const msg = '`' + this.cmdString + '` failed with exit code ' + code
         if (!this.opts.silent) this.console.error(this.autoAugmentLine(msg))
-        if (this.opts.rejectOnNonZeroExit) return this._finished.reject(new Error(msg))
       }
       this._finished.resolve()
     })

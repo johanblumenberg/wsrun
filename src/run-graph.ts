@@ -143,7 +143,6 @@ export class RunGraph {
     let cmdLine = this.makeCmd(cmd.split(' '))
     let c = this.consoles.create();
     const child = new CmdProcess(c, cmdLine, pkg, {
-      rejectOnNonZeroExit: false,
       silent: true,
       collectLogs: this.opts.collectLogs,
       prefixer: this.opts.addPrefix ? this.prefixer : undefined,
@@ -196,7 +195,6 @@ export class RunGraph {
         let cmdLine = this.makeCmd(cmdArray)
         let c = this.consoles.create();
         const child = new CmdProcess(c, cmdLine, pkg, {
-          rejectOnNonZeroExit: this.opts.fastExit,
           collectLogs: this.opts.collectLogs,
           prefixer: this.opts.addPrefix ? this.prefixer : undefined,
           pathRewriter: this.opts.rewritePaths ? this.pathRewriter : undefined,
