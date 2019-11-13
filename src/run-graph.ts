@@ -16,17 +16,6 @@ let mkThroat = require('throat')(Bromise) as ((limit: number) => PromiseFnRunner
 
 let passThrough: PromiseFnRunner = f => f()
 
-class Prefixer {
-  constructor(private wspath: string) { }
-  private currentName = ''
-  prefixer = (basePath: string, pkg: string, line: string) => {
-    let l = ''
-    if (this.currentName != pkg) l += chalk.bold((this.currentName = pkg)) + '\n'
-    l += ' | ' + line // this.processFilePaths(basePath, line)
-    return l
-  }
-}
-
 export interface GraphOptions {
   bin: string
   fastExit: boolean
@@ -54,7 +43,6 @@ export class RunGraph {
   private resultMap = new Map<string, Result>()
   private throat: PromiseFnRunner = passThrough
   private consoles: ConsoleFactory;
-  prefixer = new Prefixer(this.opts.workspacePath).prefixer
   pathRewriter = (pkgPath: string, line: string) => fixPaths(this.opts.workspacePath, pkgPath, line)
 
   constructor(
@@ -142,7 +130,7 @@ export class RunGraph {
   private runCondition(cmd: string, pkg: string) {
     let cmdLine = this.makeCmd(cmd.split(' '))
     let c = this.consoles.create(
-      this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg) + '\n', ' | ') : console);
+      this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg), ' | ') : console);
     const child = new CmdProcess(c, cmdLine, {
       silent: true,
       stdio: (this.opts.collectLogs || this.opts.addPrefix) ? 'pipe' : 'inherit',
@@ -194,7 +182,7 @@ export class RunGraph {
 
         let cmdLine = this.makeCmd(cmdArray)
         let c = this.consoles.create(
-          this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg) + '\n', ' | ') : console);
+          this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg), ' | ') : console);
         const child = new CmdProcess(c, cmdLine, {
           stdio: (this.opts.collectLogs || this.opts.addPrefix) ? 'pipe' : 'inherit',
           pathRewriter: this.opts.rewritePaths ? this.pathRewriter : undefined,
@@ -323,11 +311,11 @@ export class RunGraph {
     return (
       Bromise.all(pkgs.map(pkg => this.lookupOrRun(cmd, pkg)))
         // Wait for any of them to error
-        .then(() => Bromise.all(this.children.map(c => c.exitCode)))
-        // Wait for the all the processes to finish
         .then(() => Bromise.all(this.children.map(c => c.result)))
         // Generate report
         .then(() => this.checkResultsAndReport(cmd, pkgs))
+        // Exit with an error if any of the processes failed
+        .then(failure => failure && process.exit(1))
     )
   }
 }

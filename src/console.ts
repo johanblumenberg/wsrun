@@ -102,17 +102,19 @@ export class PrefixedConsole implements IConsole {
 
     log(msg: string) {
         if (PrefixedConsole._last !== this) {
-            this._console.log(this._name);
+            this._console.log(this._name + '\n' + this._prefix + msg);
             PrefixedConsole._last = this;
+        } else {
+            this._console.log(this._prefix + msg);
         }
-        this._console.log(this._prefix + msg);
     }
 
     error(msg: string) {
         if (PrefixedConsole._last !== this) {
-            this._console.error(this._name);
+            this._console.error(this._name + '\n' + this._prefix + msg);
             PrefixedConsole._last = this;
+        } else {
+            this._console.error(this._prefix + msg);
         }
-        this._console.error(this._prefix + msg);
     }
 }

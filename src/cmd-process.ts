@@ -51,15 +51,6 @@ export class CmdProcess {
     return Bromise.race([this._exitCode.promise, this._cancelled.promise])
   }
 
-  /**
-   * ExitError is like exitCode, except it gets rejected when the exit code is nonzero
-   */
-  get exitError() {
-    return this.exitCode.then(c => {
-      if (c != 0) throw new Error('`' + this.cmdString + '` failed with exit code ' + c)
-    })
-  }
-
   get cmdString() {
     return this.cmd.join(' ')
   }
