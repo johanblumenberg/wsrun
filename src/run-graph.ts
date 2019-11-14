@@ -314,6 +314,7 @@ export class RunGraph {
       Bromise.all(pkgs.map(pkg => this.lookupOrRun(cmd, pkg)))
         // Wait for any of them to error
         .then(() => Bromise.all(this.children.map(c => c.result)))
+        .then(() => this.consoles.flush())
         // Generate report
         .then(() => this.checkResultsAndReport(cmd, pkgs))
         // Exit with an error if any of the processes failed
