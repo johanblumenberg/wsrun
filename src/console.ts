@@ -1,4 +1,5 @@
-import { defer } from './utils'
+import * as Bromise from 'bluebird'
+import { defer, Defer } from './utils'
 
 export interface IConsole {
     log(msg: string): void;
@@ -10,6 +11,8 @@ export interface ConsoleFactory {
     active(c: IConsole): boolean;
     discard(c: IConsole): void;
     done(c: IConsole): void;
+
+    flush(): Bromise<void>;
 }
 
 class SerializedConsoleImpl implements IConsole {
@@ -44,6 +47,7 @@ class SerializedConsoleImpl implements IConsole {
 export class SerializedConsole implements ConsoleFactory {
     private _active: SerializedConsoleImpl | undefined;
     private _list: SerializedConsoleImpl[] = [];
+    private _done: Defer<void> | undefined;
 
     private _start(c: SerializedConsoleImpl) {
         this._active = c;
@@ -55,6 +59,8 @@ export class SerializedConsole implements ConsoleFactory {
             let next = this._list.shift();
             if (next) {
                 this._start(next);
+            } else if (this._done) {
+                this._done.resolve();
             }
         })
     }
@@ -80,6 +86,15 @@ export class SerializedConsole implements ConsoleFactory {
     done(c: IConsole) {
         (c as SerializedConsoleImpl).finished.resolve();
     }
+
+    flush() {
+        if (this._list.length === 0) {
+            return Bromise.resolve();
+        } else {
+            this._done = defer();
+            return this._done.promise;
+        }
+    }
 }
 
 export class DefaultConsole implements ConsoleFactory {
@@ -93,6 +108,10 @@ export class DefaultConsole implements ConsoleFactory {
 
     discard(c: IConsole) { }
     done(c: IConsole) { }
+
+    flush() {
+        return Bromise.resolve();
+    }
 }
 
 export class PrefixedConsole implements IConsole {

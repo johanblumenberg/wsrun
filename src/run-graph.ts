@@ -69,13 +69,19 @@ export class RunGraph {
     this.children.forEach(ch => ch.stop())
   }
 
-  private handleFailedChild(child: CmdProcess, console: IConsole) {
-    this.children.forEach(c => {
-      if (c !== child && !this.consoles.active(c.console)) {
-        this.consoles.discard(c.console);
-        c.stop();
+  private handleFailedChild(child: CmdProcess) {
+    if (this.opts.fastExit) {
+      if (this.opts.collectLogs) {
+        this.children.forEach(c => {
+          if (c !== child && !this.consoles.active(c.console)) {
+            this.consoles.discard(c.console);
+            c.stop();
+          }
+        });
+      } else {
+        this.closeAll();
       }
-    });
+    }
   }
 
   private lookupOrRun(cmd: string[], pkg: string): Bromise<ProcResolution> {
@@ -143,70 +149,88 @@ export class RunGraph {
     return rres
   }
 
+  private isFailed(pkg: string) {
+    let res = this.resultMap.get(pkg);
+    if ((typeof res === 'number') && (res !== 0)) {
+      return true;
+    } else if (res === ResultSpecialValues.Cancelled) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   private runOne(cmdArray: string[], pkg: string): Bromise<ProcResolution> {
     let p = this.jsonMap.get(pkg)
     if (p == null) throw new Error('Unknown package: ' + pkg)
-    let myDeps = Bromise.all(this.allDeps(p).map(d => this.lookupOrRun(cmdArray, d)))
+    let deps = this.allDeps(p);
+    let myDeps = Bromise.all(deps.map(d => this.lookupOrRun(cmdArray, d)))
 
     return myDeps.then(depsStatuses => {
       this.resultMap.set(pkg, ResultSpecialValues.Pending)
 
-      if (this.opts.exclude.indexOf(pkg) >= 0) {
-        console.log(chalk.bold(pkg), 'in exclude list, skipping')
-        this.resultMap.set(pkg, ResultSpecialValues.Excluded)
-        return Bromise.resolve(ProcResolution.Excluded)
-      }
-      if (this.opts.excludeMissing && (!p || !p.scripts || !p.scripts[cmdArray[0]])) {
-        console.log(chalk.bold(pkg), 'has no', cmdArray[0], 'script, skipping missing')
-        this.resultMap.set(pkg, ResultSpecialValues.MissingScript)
-        return Bromise.resolve(ProcResolution.Missing)
-      }
-
-      let ifCondtition = Bromise.resolve(true)
-
-      if (
-        this.opts.if &&
-        (!this.opts.ifDependency || !depsStatuses.find(ds => ds === ProcResolution.Normal))
-      ) {
-        ifCondtition = this.runCondition(this.opts.if, pkg)
-      }
-
-      let child = ifCondtition.then(shouldExecute => {
-        if (!shouldExecute) {
+      if (deps.some(d => this.isFailed(d))) {
+        // Don't run if any dependency failed
+        this.resultMap.set(pkg, ResultSpecialValues.Cancelled);
+        return Bromise.resolve(ProcResolution.Normal);
+      } else {
+        if (this.opts.exclude.indexOf(pkg) >= 0) {
+          console.log(chalk.bold(pkg), 'in exclude list, skipping')
           this.resultMap.set(pkg, ResultSpecialValues.Excluded)
-          return Bromise.resolve({
-            status: ProcResolution.Excluded,
-            process: null as null | CmdProcess
-          })
+          return Bromise.resolve(ProcResolution.Excluded)
+        }
+        if (this.opts.excludeMissing && (!p || !p.scripts || !p.scripts[cmdArray[0]])) {
+          console.log(chalk.bold(pkg), 'has no', cmdArray[0], 'script, skipping missing')
+          this.resultMap.set(pkg, ResultSpecialValues.MissingScript)
+          return Bromise.resolve(ProcResolution.Missing)
         }
 
-        let cmdLine = this.makeCmd(cmdArray)
-        let c = this.consoles.create(
-          this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg), ' | ') : console);
-        const child = new CmdProcess(c, cmdLine, {
-          stdio: (this.opts.collectLogs || this.opts.addPrefix) ? 'pipe' : 'inherit',
-          pathRewriter: this.opts.rewritePaths ? this.pathRewriter : undefined,
-          doneCriteria: this.opts.doneCriteria,
-          path: this.pkgPaths[pkg]
-        })
-        child.finished.then(() => this.consoles.done(c));
-        child.exitCode.then(code => this.resultMap.set(pkg, code))
-        child.exitCode.then(code => code > 0 && this.opts.fastExit && this.handleFailedChild(child, c));
-        this.children.push(child)
-        return Promise.resolve({ status: ProcResolution.Normal, process: child })
-      })
+        let ifCondtition = Bromise.resolve(true)
 
-      return child.then(ch => {
-        let processRun = this.throat(() => {
-          if (ch.process) {
-            ch.process.start()
-            return ch.process.finished
+        if (
+          this.opts.if &&
+          (!this.opts.ifDependency || !depsStatuses.find(ds => ds === ProcResolution.Normal))
+        ) {
+          ifCondtition = this.runCondition(this.opts.if, pkg)
+        }
+
+        let child = ifCondtition.then(shouldExecute => {
+          if (!shouldExecute) {
+            this.resultMap.set(pkg, ResultSpecialValues.Excluded)
+            return Bromise.resolve({
+              status: ProcResolution.Excluded,
+              process: null as null | CmdProcess
+            })
           }
-          return Bromise.resolve()
+
+          let cmdLine = this.makeCmd(cmdArray)
+          let c = this.consoles.create(
+            this.opts.addPrefix ? new PrefixedConsole(console, chalk.bold(pkg), ' | ') : console);
+          const child = new CmdProcess(c, cmdLine, {
+            stdio: (this.opts.collectLogs || this.opts.addPrefix) ? 'pipe' : 'inherit',
+            pathRewriter: this.opts.rewritePaths ? this.pathRewriter : undefined,
+            doneCriteria: this.opts.doneCriteria,
+            path: this.pkgPaths[pkg]
+          })
+          child.finished.then(() => this.consoles.done(c));
+          child.exitCode.then(code => this.resultMap.set(pkg, code))
+          child.exitCode.then(code => code > 0 && this.handleFailedChild(child));
+          this.children.push(child)
+          return Promise.resolve({ status: ProcResolution.Normal, process: child })
         })
-        if (this.opts.mode === 'parallel' || !ch.process) return ch.status
-        else return processRun.thenReturn(ProcResolution.Normal)
-      })
+
+        return child.then(ch => {
+          let processRun = this.throat(() => {
+            if (ch.process) {
+              ch.process.start()
+              return ch.process.finished
+            }
+            return Bromise.resolve()
+          })
+          if (this.opts.mode === 'parallel' || !ch.process) return ch.status
+          else return processRun.thenReturn(ProcResolution.Normal)
+        })
+      }
     })
   }
 
@@ -312,10 +336,9 @@ export class RunGraph {
       Bromise.all(pkgs.map(pkg => this.lookupOrRun(cmd, pkg)))
         // Wait for any of them to error
         .then(() => Bromise.all(this.children.map(c => c.result)))
+        .then(() => this.consoles.flush())
         // Generate report
         .then(() => this.checkResultsAndReport(cmd, pkgs))
-        // Exit with an error if any of the processes failed
-        .then(failure => failure && process.exit(1))
     )
   }
 }

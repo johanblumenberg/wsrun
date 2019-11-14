@@ -72,7 +72,7 @@ export async function withScaffold(opts: ScaffoldOptions, f: () => PromiseLike<v
   try {
     return await f()
   } finally {
-    if (await realExists(testDir)) await rimrafAsync(testDir)
+    //    if (await realExists(testDir)) await rimrafAsync(testDir)
   }
 }
 
@@ -97,6 +97,18 @@ export let echo = {
   },
   async getOutput() {
     return fs.readFile(`${testDir}/echo.out`, 'utf8')
+  }
+}
+
+export function makePkg(name: string, dependencies: { [name: string]: string }, script: string) {
+  return {
+    name,
+    path: `packages/${name}`,
+    dependencies,
+    license: 'MIT',
+    scripts: {
+      dorun: script
+    }
   }
 }
 
