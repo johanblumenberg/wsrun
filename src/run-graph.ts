@@ -7,7 +7,7 @@ import { uniq } from 'lodash'
 import { CmdProcess } from './cmd-process'
 import minimatch = require('minimatch')
 import { fixPaths } from './fix-paths'
-import { ConsoleFactory, SerializedConsole, DefaultConsole } from './console'
+import { ConsoleFactory, SerializedConsole, DefaultConsole, IConsole } from './console'
 
 type PromiseFn<T> = () => Bromise<T>
 type PromiseFnRunner = <T>(f: PromiseFn<T>) => Bromise<T>
@@ -79,6 +79,15 @@ export class RunGraph {
   closeAll() {
     console.log('Stopping', this.children.length, 'active children')
     this.children.forEach(ch => ch.stop())
+  }
+
+  private handleFailedChild(child: CmdProcess, console: IConsole) {
+    this.children.forEach(c => {
+      if (c !== child && !this.consoles.active(c.console)) {
+        this.consoles.discard(c.console);
+        c.stop();
+      }
+    });
   }
 
   private lookupOrRun(cmd: string[], pkg: string): Bromise<ProcResolution> {
@@ -196,6 +205,7 @@ export class RunGraph {
         })
         child.finished.then(() => this.consoles.done(c));
         child.exitCode.then(code => this.resultMap.set(pkg, code))
+        child.exitCode.then(code => code > 0 && this.opts.fastExit && this.handleFailedChild(child, c));
         this.children.push(child)
         return Promise.resolve({ status: ProcResolution.Normal, process: child })
       })
@@ -315,9 +325,7 @@ export class RunGraph {
     return (
       Bromise.all(pkgs.map(pkg => this.lookupOrRun(cmd, pkg)))
         // Wait for any of them to error
-        .then(() => Bromise.all(this.children.map(c => c.exitError)))
-        // If any of them do, and fastExit is enabled, stop every other
-        .catch(_err => this.opts.fastExit && this.closeAll())
+        .then(() => Bromise.all(this.children.map(c => c.exitCode)))
         // Wait for the all the processes to finish
         .then(() => Bromise.all(this.children.map(c => c.result)))
         // Generate report

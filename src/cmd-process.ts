@@ -66,7 +66,7 @@ export class CmdProcess {
     return this.cmd.join(' ')
   }
 
-  constructor(private console: IConsole, private cmd: string[], private pkgName: string, private opts: CmdOptions) {
+  constructor(public console: IConsole, private cmd: string[], private pkgName: string, private opts: CmdOptions) {
     this.pkgName = pkgName
     this.opts = opts
 
