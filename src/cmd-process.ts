@@ -23,7 +23,6 @@ const split = () => originalSplit(/\r?\n/, SPLIT_MAPPER, SPLIT_OPTIONS as any)
 
 export class CmdProcess {
   private cp!: ChildProcess
-  private _closed = defer<number>()
   private _finished = defer<void>()
   private _exitCode = defer<number>()
   private _cancelled = defer<Result>()
@@ -63,10 +62,6 @@ export class CmdProcess {
 
   start() {
     this._start(this.cmd)
-    this.cp.once('close', code => {
-      this._closed.resolve(code)
-      this._exitCode.resolve(code)
-    })
 
     this.cp.once('exit', code => this._exitCode.resolve(code))
 
@@ -84,8 +79,6 @@ export class CmdProcess {
 
   stop() {
     if (this.cp) {
-      this.cp.removeAllListeners('close')
-      this.cp.removeAllListeners('exit')
       this.cp.kill('SIGINT')
     }
     this._cancelled.resolve(ResultSpecialValues.Cancelled)
