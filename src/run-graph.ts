@@ -43,6 +43,7 @@ export interface GraphOptions {
   if: string
   ifDependency: boolean
   concurrency: number | null
+  silent: boolean
 }
 
 export class RunGraph {
@@ -76,7 +77,9 @@ export class RunGraph {
   }
 
   closeAll() {
-    console.log('Stopping', this.children.length, 'active children')
+    if (!this.opts.silent) {
+      console.log('Stopping', this.children.length, 'active children')
+    }
     this.children.forEach(ch => ch.stop())
   }
 
@@ -188,12 +191,16 @@ export class RunGraph {
       }
 
       if (this.opts.exclude.indexOf(pkg) >= 0) {
-        console.log(chalk.bold(pkg), 'in exclude list, skipping')
+        if (!this.opts.silent) {
+          console.log(chalk.bold(pkg), 'in exclude list, skipping')
+        }
         this.resultMap.set(pkg, ResultSpecialValues.Excluded)
         return Bromise.resolve(ProcResolution.Excluded)
       }
       if (this.opts.excludeMissing && (!p || !p.scripts || !p.scripts[cmdArray[0]])) {
-        console.log(chalk.bold(pkg), 'has no', cmdArray[0], 'script, skipping missing')
+        if (!this.opts.silent) {
+          console.log(chalk.bold(pkg), 'has no', cmdArray[0], 'script, skipping missing')
+        }
         this.resultMap.set(pkg, ResultSpecialValues.MissingScript)
         return Bromise.resolve(ProcResolution.Missing)
       }

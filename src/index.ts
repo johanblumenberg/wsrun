@@ -155,6 +155,10 @@ let yargsParser = yargs
       alias: 'y',
       type: 'number',
       describe: 'Maximum number of commands to be executed at once'
+    },
+    silent: {
+      type: 'boolean',
+      describe: 'Supress output from wsrun'
     }
   })
 
@@ -232,7 +236,8 @@ let runner = new RunGraph(
     if: argv.if || null,
     ifDependency: argv.ifDependency || false,
     workspacePath: process.cwd(),
-    concurrency
+    concurrency,
+    silent: argv.silent
   },
   pkgPaths
 )
