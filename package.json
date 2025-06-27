@@ -64,7 +64,7 @@
   "dependencies": {
     "chalk": "^2.3.0",
     "glob": "^7.1.2",
-    "jest-changed-files": "^24.9.0",
+    "jest-changed-files": "^30.0.2",
     "lodash": "^4.17.4",
     "minimatch": "^3.0.4",
     "split": "^1.0.1",
