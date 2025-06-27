@@ -30,7 +30,6 @@
     "build/**/*"
   ],
   "devDependencies": {
-    "@types/bluebird": "^3.5.18",
     "@types/glob": "^5.0.33",
     "@types/jest": "^21.1.6",
     "@types/lodash": "^4.14.85",
@@ -63,7 +62,6 @@
     "release": "semantic-release"
   },
   "dependencies": {
-    "bluebird": "^3.5.1",
     "chalk": "^2.3.0",
     "glob": "^7.1.2",
     "lodash": "^4.17.4",

@@ -1,5 +1,4 @@
 import { ChildProcess, spawn } from 'child_process'
-import * as Bromise from 'bluebird'
 
 import originalSplit = require('split')
 
@@ -47,7 +46,7 @@ export class CmdProcess {
   }
 
   get result() {
-    return Bromise.race([this._exitCode.promise, this._cancelled.promise])
+    return Promise.race([this._exitCode.promise, this._cancelled.promise])
   }
 
   get cmdString() {
@@ -74,7 +73,7 @@ export class CmdProcess {
     })
 
     // ignore if unhandled
-    this._finished.promise.catch(() => {})
+    this._finished.promise.catch(() => { })
   }
 
   stop() {

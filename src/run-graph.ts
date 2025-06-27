@@ -1,4 +1,3 @@
-import * as Bromise from 'bluebird'
 import chalk from 'chalk'
 
 import { PkgJson, Dict } from './workspace'
@@ -18,10 +17,10 @@ import { getChangedFilesForRoots } from 'jest-changed-files'
 import { filterChangedPackages } from './filter-changed-packages'
 import { expandRevDeps } from './rev-deps'
 
-type PromiseFn<T> = () => Bromise<T>
-type PromiseFnRunner = <T>(f: PromiseFn<T>) => Bromise<T>
+type PromiseFn<T> = () => Promise<T>
+type PromiseFnRunner = <T>(f: PromiseFn<T>) => Promise<T>
 
-let mkThroat = require('throat')(Bromise) as (limit: number) => PromiseFnRunner
+let mkThroat = require('throat')(Promise) as (limit: number) => PromiseFnRunner
 
 let passThrough: PromiseFnRunner = f => f()
 
@@ -47,9 +46,9 @@ export interface GraphOptions {
 }
 
 export class RunGraph {
-  private procmap = new Map<string, Bromise<ProcResolution>>()
+  private procmap = new Map<string, Promise<ProcResolution>>()
   children: CmdProcess[]
-  finishedAll!: Bromise<CmdProcess[]>
+  finishedAll!: Promise<CmdProcess[]>
   private jsonMap = new Map<string, PkgJson>()
   private runList = new Set<string>()
   private resultMap = new Map<string, Result>()
@@ -98,10 +97,10 @@ export class RunGraph {
     }
   }
 
-  private lookupOrRun(cmd: string[], pkg: string): Bromise<ProcResolution> {
+  private lookupOrRun(cmd: string[], pkg: string): Promise<ProcResolution> {
     let proc = this.procmap.get(pkg)
     if (proc == null) {
-      proc = Bromise.resolve().then(() => this.runOne(cmd, pkg))
+      proc = Promise.resolve().then(() => this.runOne(cmd, pkg))
       this.procmap.set(pkg, proc)
       return proc
     }
@@ -175,11 +174,11 @@ export class RunGraph {
     }
   }
 
-  private runOne(cmdArray: string[], pkg: string): Bromise<ProcResolution> {
+  private runOne(cmdArray: string[], pkg: string): Promise<ProcResolution> {
     let p = this.jsonMap.get(pkg)
     if (p == null) throw new Error('Unknown package: ' + pkg)
     let deps = this.allDeps(p)
-    let myDeps = Bromise.all(deps.map(d => this.lookupOrRun(cmdArray, d)))
+    let myDeps = Promise.all(deps.map(d => this.lookupOrRun(cmdArray, d)))
 
     return myDeps.then(depsStatuses => {
       this.resultMap.set(pkg, ResultSpecialValues.Pending)
@@ -187,7 +186,7 @@ export class RunGraph {
       if (deps.some(d => this.isFailed(d))) {
         // Don't run if any dependency failed
         this.resultMap.set(pkg, ResultSpecialValues.Cancelled)
-        return Bromise.resolve(ProcResolution.Normal)
+        return Promise.resolve(ProcResolution.Normal)
       }
 
       if (this.opts.exclude.indexOf(pkg) >= 0) {
@@ -195,17 +194,17 @@ export class RunGraph {
           console.log(chalk.bold(pkg), 'in exclude list, skipping')
         }
         this.resultMap.set(pkg, ResultSpecialValues.Excluded)
-        return Bromise.resolve(ProcResolution.Excluded)
+        return Promise.resolve(ProcResolution.Excluded)
       }
       if (this.opts.excludeMissing && (!p || !p.scripts || !p.scripts[cmdArray[0]])) {
         if (!this.opts.silent) {
           console.log(chalk.bold(pkg), 'has no', cmdArray[0], 'script, skipping missing')
         }
         this.resultMap.set(pkg, ResultSpecialValues.MissingScript)
-        return Bromise.resolve(ProcResolution.Missing)
+        return Promise.resolve(ProcResolution.Missing)
       }
 
-      let ifCondtition = Bromise.resolve(true)
+      let ifCondtition = Promise.resolve(true)
 
       if (
         this.opts.if &&
@@ -217,7 +216,7 @@ export class RunGraph {
       let child = ifCondtition.then(shouldExecute => {
         if (!shouldExecute) {
           this.resultMap.set(pkg, ResultSpecialValues.Excluded)
-          return Bromise.resolve({
+          return Promise.resolve({
             status: ProcResolution.Excluded,
             process: null as null | CmdProcess
           })
@@ -246,10 +245,10 @@ export class RunGraph {
             ch.process.start()
             return ch.process.finished
           }
-          return Bromise.resolve()
+          return Promise.resolve()
         })
         if (this.opts.mode === 'parallel' || !ch.process) return ch.status
-        else return processRun.thenReturn(ProcResolution.Normal)
+        else return processRun.then(() => ProcResolution.Normal)
       })
     })
   }
@@ -350,7 +349,7 @@ export class RunGraph {
       pkgs = pkgs.filter(name => globs.some(glob => minimatch(name, glob)))
     }
 
-    return Bromise.resolve(pkgs)
+    return Promise.resolve(pkgs)
   }
 
   filterByChangedFiles(pkgs: string[]) {
@@ -395,9 +394,9 @@ export class RunGraph {
 
     this.runList = new Set(pkgs)
     return (
-      Bromise.all(pkgs.map(pkg => this.lookupOrRun(cmd, pkg)))
+      Promise.all(pkgs.map(pkg => this.lookupOrRun(cmd, pkg)))
         // Wait for any of them to error
-        .then(() => Bromise.all(this.children.map(c => c.result)))
+        .then(() => Promise.all(this.children.map(c => c.result)))
         .then(() => this.consoles.flush())
         // Generate report
         .then(() => this.checkResultsAndReport(cmd, pkgs))
