@@ -4,7 +4,7 @@ import { PkgJson, Dict } from './workspace'
 import { ResultSpecialValues, Result, ProcResolution } from './enums'
 import { uniq, intersection } from 'lodash'
 import { CmdProcess } from './cmd-process'
-import minimatch = require('minimatch')
+import { minimatch } from 'minimatch'
 import { fixPaths } from './fix-paths'
 import {
   ConsoleFactory,
