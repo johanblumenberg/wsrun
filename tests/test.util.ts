@@ -11,14 +11,13 @@
 // * env var
 
 import * as fs from 'mz/fs'
-import * as rimraf from 'rimraf'
+import { rimraf } from 'rimraf'
 import * as cp from 'child_process'
 import * as mkdirp from 'mkdirp'
 import * as path from 'path'
 
 import { promisify } from 'util'
 
-let rimrafAsync = promisify(rimraf)
 let mkdirpAsync = promisify(mkdirp)
 
 export type PackageJson = {
@@ -47,7 +46,7 @@ async function realExists(path: string) {
 }
 
 export async function withScaffold(opts: ScaffoldOptions, f: () => PromiseLike<void>) {
-  if (await realExists(testDir)) await rimrafAsync(testDir)
+  if (await realExists(testDir)) await rimraf(testDir)
   await mkdirpAsync(testDir)
   await fs.writeFile(
     `${testDir}/package.json`,
@@ -72,7 +71,7 @@ export async function withScaffold(opts: ScaffoldOptions, f: () => PromiseLike<v
   try {
     return await f()
   } finally {
-    if (await realExists(testDir)) await rimrafAsync(testDir)
+    if (await realExists(testDir)) await rimraf(testDir)
   }
 }
 
