@@ -1,6 +1,6 @@
 {
   "name": "@johanblumenberg/wsrun",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "executes commands on packages in parallel, but is aware of the dependencies between them",
   "main": "./build/index.js",
   "author": "hfour",
