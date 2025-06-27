@@ -65,7 +65,7 @@
     "chalk": "^2.3.0",
     "glob": "^7.1.2",
     "jest-changed-files": "^30.0.2",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.21",
     "minimatch": "^3.0.4",
     "split": "^1.0.1",
     "throat": "^4.1.0",
