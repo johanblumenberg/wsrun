@@ -73,7 +73,7 @@ export class CmdProcess {
     })
 
     // ignore if unhandled
-    this._finished.promise.catch(() => { })
+    this._finished.promise.catch(() => {})
   }
 
   stop() {

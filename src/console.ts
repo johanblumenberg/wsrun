@@ -17,7 +17,7 @@ class SerializedConsoleImpl implements IConsole {
   private _outputBuffer: { type: 'stderr' | 'stdout'; line: string }[] = []
   public finished = defer<void>()
 
-  constructor(private _console: IConsole) { }
+  constructor(private _console: IConsole) {}
 
   activeOutput() {
     this._activeOutput = true
@@ -76,7 +76,7 @@ export class SerializedConsole implements ConsoleFactory {
   }
 
   done(c: IConsole) {
-    ; (c as SerializedConsoleImpl).finished.resolve()
+    ;(c as SerializedConsoleImpl).finished.resolve()
   }
 
   flush() {
@@ -98,8 +98,8 @@ export class DefaultConsole implements ConsoleFactory {
     return true
   }
 
-  discard(c: IConsole) { }
-  done(c: IConsole) { }
+  discard(c: IConsole) {}
+  done(c: IConsole) {}
 
   flush() {
     return Promise.resolve()
@@ -109,7 +109,7 @@ export class DefaultConsole implements ConsoleFactory {
 export class PrefixedConsole implements IConsole {
   private static _last: PrefixedConsole | undefined
 
-  constructor(private _console: IConsole, private _name: string, private _prefix: string) { }
+  constructor(private _console: IConsole, private _name: string, private _prefix: string) {}
 
   log(msg: string) {
     if (PrefixedConsole._last !== this) {
