@@ -251,7 +251,7 @@ describe('basic', () => {
     )
   })
 
-  function getTestOutput(stdout: Buffer) {
+  function getTestOutput(stdout: string | Buffer) {
     return stdout
       .toString()
       .split('\n')

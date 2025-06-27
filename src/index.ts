@@ -206,7 +206,7 @@ let pkgs
 try {
   pkgs = listPkgs('./', workspaceGlobs)
 } catch (err) {
-  console.error(chalk.red(`\nERROR: ${err.message}`))
+  console.error(chalk.red(`\nERROR: ${(err as any).message}`))
   process.exit(1)
 }
 

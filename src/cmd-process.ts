@@ -63,13 +63,13 @@ export class CmdProcess {
     this._start(this.cmd)
 
     this.cp.once('exit', (code, signal) => {
-      if (code > 0 || signal) {
+      if ((code && code > 0) || signal) {
         const msg =
           '`' + this.cmdString + '` failed with ' + (signal ? signal : 'exit code ' + code)
         if (!this.opts.silent) this.console.error(this.autoAugmentLine(msg))
       }
       this._finished.resolve()
-      this._exitCode.resolve(code)
+      this._exitCode.resolve(code || 0)
     })
 
     // ignore if unhandled
