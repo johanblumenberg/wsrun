@@ -1,5 +1,12 @@
 import 'jest'
 import { withScaffold, echo, wsrun, makePkg } from './test.util'
+import stripAnsi from 'strip-ansi'
+
+function strip(value: string): string
+function strip(value: string | undefined): string | undefined
+function strip(value: string | undefined): string | undefined {
+  return value ? stripAnsi(value) : undefined
+}
 
 let pkgList = (errorp3: boolean = false, condition?: string) => [
   echo.makePkg({ name: 'p1', dependencies: { p2: '*' } }, condition),
@@ -225,7 +232,7 @@ describe('basic', () => {
       async () => {
         let tst = await wsrun('doecho')
         expect(tst.status).toBeTruthy()
-        expect(String(tst.output[2])).toEqual(
+        expect(strip(tst.output[2]?.toString())).toEqual(
           '\nERROR: Package in directory packages/p1 has no name in package.json\n'
         )
       }
@@ -245,8 +252,8 @@ describe('basic', () => {
       },
       async () => {
         let tst = await wsrun('--serial doecho 0 Hello')
-        expect(removePath(tst.stdout.toString())).toMatchSnapshot()
-        expect(removePath(tst.stderr.toString())).toMatchSnapshot()
+        expect(removePath(strip(tst.stdout.toString()))).toMatchSnapshot()
+        expect(removePath(strip(tst.stderr.toString()))).toMatchSnapshot()
       }
     )
   })

@@ -388,9 +388,9 @@ export class RunGraph {
   async run(cmd: string[], globs: string[] = ['**/*']) {
     let pkgs: string[] = this.pkgJsons.map(p => p.name)
 
-    pkgs = await this.filterByGlobs(pkgs, globs).then(pkgs =>
-      this.filterByChangedFiles(pkgs).then(pkgs => this.addRevDeps(pkgs))
-    )
+    pkgs = await this.filterByGlobs(pkgs, globs)
+      .then(pkgs => this.filterByChangedFiles(pkgs).then(pkgs => this.addRevDeps(pkgs)))
+      .then(pkgs => pkgs.sort())
 
     this.runList = new Set(pkgs)
     return (
