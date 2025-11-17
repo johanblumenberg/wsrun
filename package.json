@@ -43,7 +43,7 @@
     "mkdirp": "^0.5.1",
     "mz": "^2.7.0",
     "prettier": "^1.19.1",
-    "rimraf": "^5.0.10",
+    "rimraf": "^6.1.0",
     "strip-ansi": "^5.0.0",
     "ts-jest": "^29.0.0",
     "ts-mockito": "^2.5.0",
@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "chalk": "^2.3.0",
-    "glob": "^10",
+    "glob": "^11.1.0",
     "jest-changed-files": "^30.0.2",
     "lodash": "^4.17.21",
     "minimatch": "^9.0.0",
